@@ -75,9 +75,12 @@ a particular module. Read the reasoning, then do your own diagnosis
 |---|---|
 | `check_axi.py` | Boundary linter: AXI port directions per the `m_`/`s_` convention, and cross-module width consistency. Run it before a build, not after one fails. |
 | `congestion-report.tcl` | **New here.** Post-route triage: prints the worst paths' logic-vs-route split with a verdict per path, the congestion report, and utilisation. Answers the question you must answer before writing any floorplan constraint. |
+| `device-grid.tcl` | **New here.** Per-clock-region SLICE/LUT/FF/BRAM/URAM/DSP/LAGUNA census plus the SLICE rectangle and hard blocks of every region. Needs no design and no checkpoint. Regenerates the tables in [`docs/05`](../docs/05-floorplan-au50.md) and [`docs/06`](../docs/06-board-deltas.md). |
 
 ```bash
 python3 examples/scripts/check_axi.py --src-dir libs/shell
 vivado -mode batch -notrace -source examples/scripts/congestion-report.tcl \
        -tclargs <routed.dcp> 10 <outdir>
+vivado -mode batch -notrace -source examples/scripts/device-grid.tcl \
+       -tclargs xcu50-fsvh2104-2-e        # 2023.2 for xcu280-fsvh2892-2L-e
 ```

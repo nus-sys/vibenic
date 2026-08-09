@@ -100,6 +100,7 @@ All from `vibenic-shell/app/flow_reduce/`:
 | `tcl/pr-link-post.tcl` | `app/flow_reduce/pr_link_post_fr.tcl` | unmodified |
 | `scripts/check_axi.py` | `vibenic-shell/script/check_axi.py` | unmodified |
 | `scripts/congestion-report.tcl` | — | **new**: makes the documented diagnosis recipe runnable |
+| `scripts/device-grid.tcl` | — | **new**: queries the Vivado device database (no design, no checkpoint) for the per-clock-region resource census in `docs/05` and `docs/06` |
 
 ### `docs/`
 
@@ -119,6 +120,21 @@ the VibeNIC paper; and the accumulated session records for the shell and
 
 Bare `src/…` paths inside `docs/10`–`12` cite files in the **kvs_cuckoo**
 repository (pinned above) for attribution; each document says so in its header.
+
+The clock-region resource census in `docs/05` and the clock-region maps in
+`docs/06` were **queried from the Vivado device database** on 2026-08-09 with
+`examples/scripts/device-grid.tcl` (2024.2 for `xcu50`/`xcu55c`, 2023.2 for
+`xcu280`), not copied from a datasheet or a build report; the device totals it
+sums to match the VU35P/VU37P published figures. The pblock and
+`HD.PARTPIN_RANGE` geometry in the same sections is read from the shell's
+`boards/*/base.xdc` and the `app/au{280,55c}_lb_guard/floorplan.xdc` guards.
+Three statements were corrected against those sources in the process:
+
+| Was | Is |
+|---|---|
+| `docs/05`: `pb_cmac` = CR `X0Y7:X4Y7` | `X0Y7:X5Y7` |
+| `docs/05`: NIC partition pins at CR ≈ `X1Y6` | `X1Y6` in, `X4Y6` out — two disjoint columns |
+| `docs/06`: au280 has 1 guard pblock | 3 `EXCLUDE_PLACEMENT` guards + 2 non-exclusive guides |
 
 ### `prompts/`
 

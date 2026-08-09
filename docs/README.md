@@ -38,9 +38,11 @@ of the case study. Other boards are covered in [06](06-board-deltas.md).
    the AXI-Lite crossbar, and the register models of the shell's steering IPs.
 4. [Clocking and reset](04-clocking-and-reset.md) — clock domains, the free
    100 MHz reference, and the rules for adding a clock inside the RP.
-5. [Floorplan — Alveo U50](05-floorplan-au50.md) — clock-region grid, SLR split,
-   partition-pin geometry, and where each kind of logic must live.
-6. [Board deltas](06-board-deltas.md) — au280 and au55c differences.
+5. [Floorplan — Alveo U50](05-floorplan-au50.md) — clock-region grid, the
+   per-region SLICE/BRAM/URAM/DSP/LAGUNA census, SLR split, partition-pin
+   geometry, and where each kind of logic must live.
+6. [Board deltas](06-board-deltas.md) — au280 and au55c differences, including
+   each board's clock-region map and RP resource budget.
 
 **The building blocks**
 
