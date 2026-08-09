@@ -131,6 +131,19 @@ space.
 > library agents; they are the reference implementation of the protocol you are
 > testing against.
 
+> **cocotbext-axi silently drops optional signals it can't bind
+> case-sensitively.** With bsc's uppercase AXI port names (`WSTRB`, `BRESP`,
+> …), the agent's optional-signal binder never matches them, and it then
+> reports a default (full strobe, `OKAY`) instead of erroring or warning.
+> A test that reads `write_if.wstrb` or injects a `BRESP` error through the
+> agent's normal API will pass even when the DUT is wrong — one session lost
+> a multi-hour investigation to a "WSTRB is zero" bug that was actually the
+> agent never having bound the signal at all. This is not specific to one
+> interface: **any cocotb test in this corpus touching a bsc-generated AXI
+> port is affected.** Bind the affected signals explicitly by their exact
+> uppercase name, and prefer asserting at the DUT pin or a protocol monitor
+> over trusting the transaction object's field for anything optional.
+
 CMAC and QDMA are never simulated as IPs — only their AXI-Stream contracts are.
 
 ### The golden model

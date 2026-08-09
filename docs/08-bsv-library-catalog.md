@@ -123,14 +123,44 @@ results against a packet stream positionally.
 `reinstThres` cooldown and `(* preempts = "do_reinst, do_subm_req" *)` so
 reinsertion wins over new requests.
 
-Two things will bite you:
+Several things will bite you:
 
-> **Post-reset warmup: ~2600 cycles.** The vendored `uram_bank.sv` clears its
-> valid RAM one entry per cycle after reset (`2**AWIDTH` cycles per bank). Any
-> testbench or bring-up sequence **must idle for roughly 2600 cycles after
+> **Post-reset warmup: ~2600 cycles — for the corpus's default 1024-entry
+> table.** The vendored `uram_bank.sv` clears its valid RAM one entry per
+> cycle after reset (`2**AWIDTH` cycles per bank). **Scale the wait with your
+> own `htSize`**: a 32768-entry table needs ~32768 cycles, 12× the default
+> figure. A fixed-cycle gate copied from another design's table size will
+> under-wait and silently drop early inserts with no error — measured on a
+> real build as 0/300 inserts landing at the wrong (too-short) gate. Any
+> testbench or bring-up sequence **must idle for `2**htSizeLog2` cycles after
 > `RST_N` deasserts** before issuing the first command, or early inserts are
 > silently wiped and every subsequent lookup misses. This is the single most
 > common way a flow-table test appears broken when it is not.
+
+> **`mkCachedCuckooServer` cannot report insert failure at its interface.**
+> Every `Update` answers `Succ`, even when the table is full and the insert
+> was silently dropped internally. If your spec needs an insert-fail
+> counter or behavior, the caller must implement **verify-after-insert**:
+> issue a `Lookup` after the `Update` and compare, since the IP itself will
+> not tell you.
+
+> **The table hangs, it does not fail, when asked to insert past its
+> placement limit.** Once occupancy passes the point where a 2-hash cuckoo
+> table starts failing to place keys (~59% load, measured), the next
+> `Update`'s `updRdy` never returns — the FSM blocks forever rather than
+> answering `Fail`. Give any cocotb/Bluesim test that drives inserts near
+> capacity an explicit timeout, or a wedge will read as a slow test. The
+> practical consequence: a `CNT_INSERT_FAIL`-style requirement is only
+> satisfiable if the caller structurally caps load well below the failure
+> point (e.g. a bump allocator gating `ENTRY_CNT < NUM_ENTRIES`) — this IP
+> cannot be driven into that state and recovered.
+
+> **`uram_bank.sv`'s valid-RAM wipe runs once, ever.** The wipe is gated by
+> a `wiped` latch that is never cleared, so a second reset does **not**
+> re-clear the table. A design that needs "soft reset clears the flow
+> table" (e.g. a control register that re-triggers warmup) cannot rely on
+> the IP's own reset for it — tag entries with a generation counter in
+> spare value bits instead, and treat a generation mismatch as a miss.
 
 > **Do not buffer between `drain.get` and `update.put`.** The victim-reinsert
 > path must be a single atomic hop. Inserting a FIFO there breaks the table.

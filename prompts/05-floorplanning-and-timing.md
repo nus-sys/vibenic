@@ -138,6 +138,19 @@ huge and the RP is small by construction. Congestion there means the static
 floorplan or partpin geometry has squeezed the RP's shape — investigate the
 boundary, not your own utilisation.
 
+**MUST NOT: copy a resource-range compaction pblock (e.g. `pb_ft`) from
+another design without checking what resource types your own cells actually
+use.** The case study's `pb_ft` ranges `SLICE` and `URAM288` only, because
+that design's flow-table state lives in URAM. A different flow-table
+instantiation whose entry state (or the vendored table's own
+`ram_style="block"` valid arrays) lands in `BRAM`/`RAMB` instead will fail
+DRC (`HDPR-18`, cells outside every range in the pblock they're assigned to)
+before place even starts — on a design where no congestion had even been
+observed yet. This is the same "diagnose before constraining" rule below,
+sharpened: a pblock that closed timing for the reference design is scoped to
+*that* design's resource mix, not a template to carry forward. Measure your
+own design's congestion (or lack of it) before reapplying someone else's fix.
+
 ## Post-router-init timing is not the answer
 
 **MUST: judge only the final `report_timing_summary` after `route_design`** (or

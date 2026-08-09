@@ -91,6 +91,22 @@ proc vnd_hbm_clocks { {name hbm_mmcm_i0} {clk_port free_100m_clk} {rst_port RST_
 #
 # PC = 256 MB on 8 GB parts (au50, au280); 512 MB on 16 GB (au55c).
 # USER_DIS_REF_CLK_BUFG TRUE because the ref clock is already BUFG'd by clk_wiz.
+#
+# Lateral switch ON (USER_SWITCH_ENABLE_00 TRUE, a documented refarch
+# alternative — not the default this file builds): addressing is qualitatively
+# different, not just enabled-wider. Every SAXI can now reach every enabled
+# MC, so it exposes *one segment per MC* (four `HBM_MEMnn` segments for four
+# MCs) instead of one fixed window. A single BD `-offset/-range` call on the
+# SAXI is then ambiguous — assign each segment individually, per MC, or
+# `validate_bd_design` fails with a `BD 5-430` address-segment error. Doing
+# that correctly still isn't enough on its own: by default every master is
+# given every reachable segment, so two SAXIs that can both reach the same
+# memory produce a `BD 41-1075` DMA-aperture-collision error at validation.
+# Restrict each master's excluded/included segment list to its intended
+# aperture (e.g. by `addr-bit` split) rather than leaving the default
+# every-master-sees-everything mapping. Both failure modes are cheap to hit
+# and cheap to fix at `RUN=0` (BD elaboration only, seconds) — validate the
+# address map before committing to a full `RUN=1` build.
 # -----------------------------------------------------------------------------
 proc vnd_hbm_controller { {mc_list {00 01 02}} {saxi_list {00 02 04}} {name hbm_0} } {
   set hbm [create_bd_cell -type ip -vlnv xilinx.com:ip:hbm:1.0 $name]
