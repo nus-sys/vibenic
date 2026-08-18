@@ -1,0 +1,8 @@
+[submodule "qnic-shell"]
+	path = qnic-shell
+	url = https://github.com/nus-sys/qnic-shell
+	branch = release/v0.3
+[submodule "qnic-driver"]
+	path = qnic-driver
+	url = https://github.com/nus-sys/qnic-driver
+	branch = release/v0.3

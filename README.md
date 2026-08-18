@@ -1,106 +1,122 @@
-# VibeNIC DEPs
+# VibeNIC
 
-**D**ocumentation, **E**xamples, and **P**rompts for developing FPGA SmartNIC
-datapaths on the VibeNIC shell.
+**An FPGA SmartNIC platform designed so that a datapath can be built by
+describing it.**
 
-VibeNIC is a SmartNIC framework co-designed for an LLM developer. Its shell
-absorbs board-level complexity into a timing-closed static region behind
-standard interfaces, shrinking each iteration to a user-partition-only
-recompile and leaving most of the design space reconfigurable. A building-block
-library on top lets a developer compose rather than microarchitect.
+A conventional FPGA NIC design puts board bring-up, PCIe, 100 GbE, memory
+controllers, floorplanning and a multi-hour place-and-route between an idea and
+a packet on the wire. VibeNIC moves all of that behind a static, timing-closed
+shell and exposes the part that is actually your design — a reconfigurable
+partition with standard AXI-Stream, AXI4-MM and AXI-Lite interfaces — as the
+only thing you write and the only thing that recompiles.
 
-This repository is the third piece: the corpus that grounds a developer — human
-or agent — in the shell and library contracts. The design space stays large and
-permissive; the DEPs supply **guidance density** instead of restriction.
-
-## The split
+Three pieces make that work, and this repository is the umbrella over all
+three:
 
 | | | |
 |---|---|---|
-| **[docs/](docs/)** | *what is true* | Shell architecture and the RP boundary contract, address maps, clocking, the U50 floorplan, the vendored IP catalog, the BSV library, simulation frameworks, build flow, host runtime. |
-| **[examples/](examples/)** | *what is validated* | A complete, buildable network function; block-design and constraint Tcl; simulation harnesses and a golden model; diagnostic scripts. |
-| **[prompts/](prompts/)** | *how to work* | Workflow, decomposition, the BSV and Block-Design clamps, simulation mandates, floorplanning and timing, build/debug iteration, dos and don'ts, spec authoring. |
-| **[libs/](libs/)** | *what you build on* | The BSV building-block library, the vendored Verilog/SV IP, the packaged stream router, and a read-only copy of the boundary contract. |
+| **[`qnic-shell/`](qnic-shell)** | the hardware platform | QDMA PCIe 4.0 host DMA, 100 GbE CMAC, the NIC datapath, and a DFX reconfigurable partition for user logic. Alveo U50, U280, U55C. |
+| **[`qnic-driver/`](qnic-driver)** | the host software | Linux kernel module with a netdev, a DPDK userspace library, partial-reconfiguration loading, and the `qnic-smi` management CLI. |
+| **[`deps/`](deps)** | the grounding corpus | **D**ocumentation, **E**xamples and **P**rompts: the shell and library contracts, a complete validated network function, and the working clamps that keep generated designs on paths known to build. |
 
-Entry point for an agent: **[AGENTS.md](AGENTS.md)**.
+The first two are the platform. The third is what makes it usable by a
+developer — human or LLM agent — who has not spent a year inside it.
 
-## Quickstart
+## Why the corpus is a first-class component
+
+The shell deliberately restricts almost nothing: nearly the whole partition
+stays reconfigurable, and that is the point. But a large, permissive design
+space leaves generation underdetermined, and every unvetted microarchitectural
+choice is a fresh opportunity to invent something that has never been built on
+this platform.
+
+[`deps/`](deps) answers that with **guidance density** rather than restriction.
+It states what is true about the platform ([`deps/docs/`](deps/docs)), shows
+what has actually been built and validated ([`deps/examples/`](deps/examples)),
+and clamps working habits — not capability — to patterns that close
+([`deps/prompts/`](deps/prompts)). Rules are marked MUST or SHOULD, and each
+MUST is there because violating it has already cost someone a build.
+
+## Getting started
 
 ```bash
-# 1. Prove the toolchain and the library/example split work
-make check-bsv         # bsc: compile the case-study NF against libs/
-make check-sim         # golden model + 7 Bluesim testbenches + 4 cocotb suites
-
-# 2. Read, in this order
-#    docs/02-rp-boundary-contract.md    the contract you must not break
-#    prompts/02-bsv-coding-clamp.md     how the logic gets written
-#    examples/case-study-nf/            what a finished one looks like
+git clone --recurse-submodules <this-repo> vibenic
+cd vibenic
+make init          # if you cloned without --recurse-submodules
 ```
 
-`make check` runs all of the above plus `check-links` (every relative link
-resolves), `check-paths` (no absolute host paths outside `PROVENANCE.md`), and
-`check-axi` (the boundary linter against `libs/shell`). None of it needs Vivado.
+**Building a datapath.** Read [`AGENTS.md`](AGENTS.md) — it is the entry point
+for anyone, or anything, writing a network function against this shell. It
+names the non-negotiables and routes you to the document that covers what you
+are about to do.
 
-## Layout
+**Checking the toolchain.** From the repository root:
 
-```
-docs/          15 documents, numbered in reading order
-examples/
-  case-study-nf/   the paper's HBM vector-reduce NF — buildable in place
-    spec/          its specification, reference architecture, and test plan
-    src/           10 BSV modules
-    test/          8 testbenches — 7 pure-logic (Bluesim), 1 needs Verilator
-    tests/         4 cocotb suites + the numpy golden model
-  bd/          Vivado block-design Tcl: HBM subsystem, boundary guard ring,
-               and two complete rp_user designs
-  xdc/         floorplan constraints: reusable guard pblocks + two as-built files
-  tcl/         app build, post-link hook, BSV→IP packaging
-  scripts/     AXI boundary linter, congestion/timing triage
-libs/
-  bsv/         the BSV building-block library
-  verilog/     vendored cuckoo hash-table IP, HLS hashers, bsc primitives
-  ip/          AxisPacketRouterDual, packaged for Vivado
-  shell/       rp_blk.v — the authoritative boundary. Read-only.
-prompts/       9 documents
-tools/         link checker
+```bash
+make check         # compiles and simulates the corpus case study end to end
 ```
 
-## The case study
+This needs `bsc`, Verilator and cocotb, and takes a few minutes. It needs no
+Vivado, no board, and no shell package. If it passes, your environment can
+build and verify a network function.
 
-[`examples/case-study-nf/`](examples/case-study-nf/) is the network function the
-VibeNIC paper reports: a stateful per-flow tensor-mixing datapath on Alveo U50.
-Each UDP packet carries a 256-element `int16` query vector; on a flow-table hit
-the design reads three reference vectors from separate HBM channels, emits their
-four-way average to the host, and reports misses to a host notification ring.
+**Running a card.** Build and install the driver from
+[`qnic-driver/`](qnic-driver), then use `qnic-smi` to enumerate boards, bring up
+CMAC ports, and load a partial bitstream onto a running shell.
 
-It is here because it is *validated*, and its status is reported plainly:
+## How a design gets onto the card
 
-- **Functionally complete and byte-exact in simulation** — verified in this tree
-  (7/7 Bluesim testbenches, end-to-end golden diff, flow-table and
-  backpressure/stress suites).
-- **Its last U50 build misses timing**: post-route WNS −2.423 ns. The worst
-  paths are inside the *vendored* cuckoo hash-table IP's victim/delmask logic —
-  12–14 logic levels at ~6.5 ns, which misses even at 200 MHz — **not** at the
-  partition boundary, whose guard-slice floorplan is correct and closes. The
-  paper reports the same result (160 MHz achieved against a 240 MHz target).
+```
+  spec / refarch / test-plan          deps/prompts/08-spec-authoring.md
+            │
+            ▼
+  BSV datapath  +  rp_user.tcl        deps/prompts/02, deps/prompts/03
+            │
+            ▼
+  Bluesim  and  cocotb + Verilator    deps/prompts/04  — before any synthesis
+            │
+            ▼
+  make app  against a shell package   deps/docs/14  — partial bitstream only
+            │
+            ▼
+  qnic-smi load  →  on-card bring-up  deps/docs/15
+```
 
-Closing it needs IP-level pipelining or a slower clock domain for the table, not
-more constraints. See [`docs/05-floorplan-au50.md`](docs/05-floorplan-au50.md).
+The shell is built once and stays loaded. Each design iteration produces a
+partial bitstream that is linked against the shell's abstract checkpoint and
+reconfigured onto the running card, so the host, the PCIe link and the network
+ports never go down.
 
-## What is not here
+## Supported boards
 
-- **The shell itself.** These DEPs consume a shell *support package*;
-  [`libs/shell/rp_blk.v`](libs/shell/rp_blk.v) is a read-only copy of the
-  boundary contract, not a buildable source tree.
-- **An evaluation harness.** Scoring rubrics and conformance oracles grade a
-  developer and deliberately live elsewhere; the reusable practice distilled
-  from them is in [`prompts/`](prompts/).
-- **The host driver.** [`docs/15`](docs/15-host-runtime-and-bringup.md) documents
-  its usage and the register sequences, not its implementation.
+| Board | Part | 100 GbE | Memory | Vivado |
+|---|---|---|---|---|
+| Alveo U50 | `xcu50-fsvh2104-2-e` | 1 × QSFP | HBM | 2024.2 |
+| Alveo U280 | `xcu280-fsvh2892-2L-e` | 2 × QSFP | DDR4 | 2023.2 |
+| Alveo U55C | `xcu55c-fsvh2892-2L-e` | 2 × QSFP | HBM | 2024.2 |
 
-## Requirements
+U50 is the primary target throughout the corpus; the differences that matter
+for the other two are in [`deps/docs/06-board-deltas.md`](deps/docs/06-board-deltas.md).
 
-`bsc` 2024.01, Verilator 5.020, cocotb 1.9.2 + cocotbext-axi 0.1.24, Python 3.8,
-numpy, scapy — for everything except the FPGA build. Vivado 2024.2 (2023.2 for
-au280) and a shell support package for that. Exact versions as validated:
-[`PROVENANCE.md`](PROVENANCE.md).
+## Repository layout
+
+```
+AGENTS.md        entry point for building a network function on this platform
+deps/            the DEPs corpus — docs, examples, libs, prompts, self-checks
+qnic-shell/      submodule: the FPGA shell and its build flow
+qnic-driver/     submodule: kernel module, DPDK library, management tools
+build/           local workspace for your own designs (never tracked)
+```
+
+## License
+
+The umbrella repository is dual-licensed by content type:
+
+- **Prose** — `deps/docs/`, `deps/prompts/`, and the READMEs — under
+  [CC-BY-4.0](LICENSE-CC-BY-4.0).
+- **Code** — `deps/examples/`, `deps/libs/`, `deps/tools/` — under
+  [Apache-2.0](LICENSE-Apache-2.0).
+
+Vendored third-party sources keep their original terms; see [`NOTICE`](NOTICE).
+The submodules carry their own licenses: `qnic-shell` is Apache-2.0, and
+`qnic-driver` is GPL-2.0 for its kernel code and Apache-2.0 for userspace.

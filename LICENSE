@@ -1,0 +1,19 @@
+VibeNIC
+
+This repository contains material under multiple licenses:
+
+  Documentation and prompts (deps/docs/, deps/prompts/, and the READMEs):
+    Licensed under the Creative Commons Attribution 4.0 International
+    License (CC-BY-4.0).
+    See LICENSE-CC-BY-4.0 for the full license text.
+
+  Code (deps/examples/, deps/libs/, deps/tools/, and the build files):
+    Licensed under the Apache License, Version 2.0.
+    See LICENSE-Apache-2.0 for the full license text.
+
+  Vendored third-party sources (notably under deps/libs/verilog and
+  deps/libs/ip):
+    Retain their original licenses. See NOTICE.
+
+  Submodules (qnic-shell/, qnic-driver/):
+    Carry their own licenses. See each submodule's LICENSE.
