@@ -1,3 +1,10 @@
+// Copyright (c) 2020 Bluespec, Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Bluespec compiler primitive, redistributed verbatim from the bsc
+// Verilog primitive library so that a Verilator or Vivado run can
+// resolve the primitive closure from a single -y directory.
+
 
 `ifdef BSV_ASSIGNMENT_DELAY
 `else

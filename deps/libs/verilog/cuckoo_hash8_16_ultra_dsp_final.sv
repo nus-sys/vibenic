@@ -1,3 +1,6 @@
+// Copyright (c) 2025-2026 Yunfan Li
+// SPDX-License-Identifier: Apache-2.0
+
 // ============================================================================
 // cuckoo_hash8_16_ultra_dsp_final.v
 // 8 orthogonal 16-bit hashes from a 256-bit input (UltraScale+ tuned).

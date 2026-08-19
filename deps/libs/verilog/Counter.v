@@ -1,3 +1,13 @@
+// Copyright (c) 2020 Bluespec, Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Bluespec compiler primitive from the bsc Verilog primitive library,
+// redistributed with local modifications.
+//
+// Modifications Copyright (c) 2025-2026 Yunfan Li, licensed under the
+// same BSD-3-Clause terms:
+//   mark_debug attribute on the q_state register.
+
 
 `ifdef BSV_ASSIGNMENT_DELAY
 `else

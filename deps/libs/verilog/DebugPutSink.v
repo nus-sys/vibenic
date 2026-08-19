@@ -1,3 +1,6 @@
+// Copyright (c) 2025-2026 Yunfan Li
+// SPDX-License-Identifier: Apache-2.0
+
 module DebugPutSink #(
     parameter SINK_TAG = "Debug",
     parameter M_WIDTH = 32

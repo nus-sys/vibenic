@@ -1,6 +1,8 @@
 VibeNIC
 
-This repository contains material under multiple licenses:
+This repository contains material under multiple licenses. Source files under
+deps/libs/bsv and deps/libs/verilog carry an SPDX-License-Identifier tag in
+their header; that tag is authoritative for the file.
 
   Documentation and prompts (deps/docs/, deps/prompts/, and the READMEs):
     Licensed under the Creative Commons Attribution 4.0 International
@@ -8,11 +10,19 @@ This repository contains material under multiple licenses:
     See LICENSE-CC-BY-4.0 for the full license text.
 
   Code (deps/examples/, deps/libs/, deps/tools/, and the build files):
-    Licensed under the Apache License, Version 2.0.
+    Licensed under the Apache License, Version 2.0, except for the
+    third-party files noted below.
     See LICENSE-Apache-2.0 for the full license text.
 
-  Vendored third-party sources (notably under deps/libs/verilog and
-  deps/libs/ip):
+  Bluespec compiler primitive libraries (the FIFO*.v, SizedFIFO.v, BRAM*.v,
+  RegFile.v, Counter.v, SyncResetA.v, MakeResetA.v, RevertReg.v and
+  ConstrainedRandom.v files under deps/libs/verilog and deps/libs/ip/common):
+    Copyright (c) 2020 Bluespec, Inc. Licensed under BSD-3-Clause, including
+    the five files carrying local modifications.
+    See LICENSE-BSD-3-Clause for the full license text.
+
+  Other vendored third-party sources (the Vitis HLS generated sources under
+  deps/libs/verilog, and deps/libs/ip/pktrte_dual/):
     Retain their original licenses. See NOTICE.
 
   Submodules (qnic-shell/, qnic-driver/):

@@ -1,3 +1,6 @@
+// Copyright (c) 2025-2026 Yunfan Li
+// SPDX-License-Identifier: Apache-2.0
+
 package AxisGetPut;
 
 import AXI4_Stream::*;
