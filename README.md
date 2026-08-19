@@ -37,6 +37,73 @@ and clamps working habits — not capability — to patterns that close
 ([`deps/prompts/`](deps/prompts)). Rules are marked MUST or SHOULD, and each
 MUST is there because violating it has already cost someone a build.
 
+## Prerequisites
+
+Two toolchains, needed at different points. Everything up to and including
+simulation — spec, BSV, Bluesim, cocotb — runs with no Vivado, no shell package
+and no board. Vivado only enters at `make app`, when the partition becomes a
+partial bitstream.
+
+### Vivado — for the FPGA build only
+
+| Board | Vivado |
+|---|---|
+| Alveo U50, U55C | 2024.2 |
+| Alveo U280 | **2023.2** (required — the board's platform files are not supported by 2024.2) |
+
+The version must match the board the shell package was built for; a mismatch
+fails at the abstract-shell link, not at project creation. Source the settings
+script before building:
+
+```bash
+source $XILINX_ROOT/Vivado/2024.2/settings64.sh       # 2023.2 for au280
+```
+
+Budget roughly 64 GB RAM per concurrent run. Details, including the `RUN=1`
+gate that catches everyone once, are in
+[`deps/docs/14-build-and-load-flow.md`](deps/docs/14-build-and-load-flow.md).
+
+### BSV, Verilator and cocotb — for everything before that
+
+| Tool | Validated version | Purpose |
+|---|---|---|
+| `bsc` | 2024.01-20-g9a97f9d0 | BSV → Bluesim and BSV → Verilog |
+| Verilator | 5.020 | RTL simulation under cocotb |
+| cocotb | 1.9.2 | the AXI-facing and end-to-end test tier |
+| cocotbext-axi | 0.1.24 | AXI/AXI-Lite/AXI-Stream bus agents |
+| Python | ≥ 3.8, with numpy | golden models, cocotb, the corpus checks |
+
+Newer `bsc` and Verilator releases generally work. **Pin `cocotbext-axi`** — its
+optional-signal binding behaviour is the subject of a documented trap in
+[`deps/docs/13-simulation-frameworks.md`](deps/docs/13-simulation-frameworks.md),
+which also covers which tier a given module belongs in and how the bsc Verilog
+primitive library is located (`$BSC_VERILOG_LIB`).
+
+Set this up either way:
+
+- **Locally**, following the instructions in
+  [`lyftfc/bsv-devbox`](https://github.com/lyftfc/bsv-devbox).
+- **In the prebuilt container**, mounting the working directory:
+
+  ```bash
+  docker pull lyftfc/bsv-devbox
+  docker run -it -v "$PWD":/workspace -w /workspace lyftfc/bsv-devbox
+  ```
+
+  The image carries bsc, Verilator 5.020, cocotb 1.9.2 and Python on Ubuntu
+  24.04, with the bsc contributed libraries and the Verilator/cocotb patches
+  already applied. Its `bsc` is newer than the version the corpus was validated
+  against, which is expected.
+
+Confirm the result with `make check` below before writing a design.
+
+### Host side — for running a card
+
+Only needed to load a bitstream onto real hardware: a Linux kernel with
+matching headers to build the `qnic` module, and DPDK if you want the userspace
+datapath. See [`qnic-driver/`](qnic-driver) and
+[`deps/docs/15-host-runtime-and-bringup.md`](deps/docs/15-host-runtime-and-bringup.md).
+
 ## Getting started
 
 ```bash
